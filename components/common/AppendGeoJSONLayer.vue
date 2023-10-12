@@ -1,5 +1,5 @@
 <template>
-    <input type="file" accept=".geojson" v-on:change="handleFileChange">
+    <input id="input-file" type="file" accept=".geojson" v-on:change="handleFileChange">
 </template>
 
 
@@ -65,18 +65,26 @@ function handleFileChange(e: Event) {
                     type: 'fill',
                     source: id_source,
                     paint: {
-                        "fill-opacity": 0.4
+                        "fill-opacity": 0.4,
+                        "fill-color": "yellow",
+                        "fill-outline-color" : "red",
                     },
                     filter: ['==', '$type', "Polygon"]
                 });
             }
 
-            props.onLoaded?.call(undefined, geojson, id_source, [id_layer_point, id_layer_line, id_layer_polygon]);
-
             if (props.fitTo) {
                 map.fitBounds([box[0], box[1], box[2], box[3]]);
             }
+
+            props.onLoaded?.call(undefined, geojson, id_source, [id_layer_point, id_layer_line, id_layer_polygon]);
         });
     }
 }
 </script>
+
+<style>
+#input-file{
+    border-bottom: 1px solid #aaa8ff;
+}
+</style>
