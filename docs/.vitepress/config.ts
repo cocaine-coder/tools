@@ -23,7 +23,7 @@ export default {
             }
         },
         nav: [{ 'text': "gis", link: '/gis/' }],
-        socialLinks: [{ icon: 'github', link: "https://github.com/cocaine-coder/wheater" }],
+        socialLinks: [{ icon: 'github', link: "https://github.com/cocaine-coder/wang-tools" }],
         aside: false
     }
 } as UserConfig<DefaultTheme.Config>
