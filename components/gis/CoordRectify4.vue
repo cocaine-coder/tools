@@ -69,15 +69,20 @@ const point_pairs = computed(() => {
     return ret;
 });
 
+/**
+ * 更新线
+ * @param map 
+ */
 function updatePairPointLine(map: maplibregl.Map) {
     const features = points.value.features;
-    if (features.length % 2 === 0) {
-        const source = map.getSource(id_pair_point_line_source) as maplibregl.GeoJSONSource;
-        const lines: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
-        for (let i = 0; i < features.length; i += 2) {
-            const current = features[i];
-            const next = features[i + 1];
+    const source = map.getSource(id_pair_point_line_source) as maplibregl.GeoJSONSource;
 
+    const lines: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+    for (let i = 0; i < features.length; i += 2) {
+        const current = features[i];
+        const next = features[i + 1];
+
+        if (current && next)
             lines.features.push({
                 type: 'Feature',
                 properties: {},
@@ -86,20 +91,33 @@ function updatePairPointLine(map: maplibregl.Map) {
                     coordinates: [current.geometry.coordinates, next.geometry.coordinates]
                 }
             });
-        }
-
-        source.setData(lines);
     }
+
+    source.setData(lines);
 }
 
+/**
+ * 删除点对
+ * @param map 
+ * @param id 
+ */
 function handleRemovePointPair(map: maplibregl.Map, id: string) {
     const ids = id.split('-');
     points.value.features = points.value.features.filter(x => !ids.some(id => id === x.properties.id!.toString())) as any;
-
+    points.value.features.forEach((v, i) => {
+        v.properties.id = i + 1;
+    });
     (map.getSource(id_pair_points_source) as maplibregl.GeoJSONSource).setData(points.value);
     updatePairPointLine(map);
 }
 
+/**
+ * 加载geojson文件
+ * @param map 
+ * @param geojson 
+ * @param sourceId 
+ * @param layerIds 
+ */
 function handleGeoJSONFileLoaded(map: maplibregl.Map, geojson: GeoJSON.Feature | GeoJSON.FeatureCollection, sourceId: string, layerIds: string[]) {
     map.getCanvas().style.cursor = 'crosshair';
 
@@ -214,11 +232,11 @@ function handleGeoJSONFileLoaded(map: maplibregl.Map, geojson: GeoJSON.Feature |
         layout: {
             "text-field": ['get', 'id'],
             'text-offset': [1, 0],
-            "text-size" : 16
+            "text-size": 16
         },
         paint: {
-            "text-halo-color" : 'white',
-            "text-halo-width" : 2
+            "text-halo-color": 'white',
+            "text-halo-width": 2
         }
     })
 
