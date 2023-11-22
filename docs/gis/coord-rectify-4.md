@@ -1,5 +1,3 @@
-# 坐标纠偏
-
 <CoordRectify4/>
 
 <script setup>

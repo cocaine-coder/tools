@@ -8,6 +8,8 @@
                     </AppendGeoJSONLayer>
                     <Separater></Separater>
                     <AppendRasterLayer :map="slotProps.map" :before-id="id_raster_before"></AppendRasterLayer>
+                    <Separater></Separater>
+
                 </div>
 
                 <div id="table">
@@ -19,10 +21,10 @@
                     <div>操作</div>
                     <template v-for="pair in point_pairs">
                         <div>{{ pair[0] }}</div>
-                        <div>{{ pair[1][0] }}</div>
-                        <div>{{ pair[1][1] }}</div>
-                        <div>{{ pair[1][2] }}</div>
-                        <div>{{ pair[1][3] }}</div>
+                        <div>{{ pair[1][0].toFixed(6) }}</div>
+                        <div>{{ pair[1][1].toFixed(6) }}</div>
+                        <div>{{ pair[1][2].toFixed(6) }}</div>
+                        <div>{{ pair[1][3].toFixed(6) }}</div>
                         <div>
                             <button @click="handleRemovePointPair(slotProps.map, pair[0])">删除</button>
                         </div>
@@ -70,7 +72,7 @@ const point_pairs = computed(() => {
 });
 
 /**
- * 更新线
+ * 更新点对之间的连线
  * @param map 
  */
 function updatePairPointLine(map: maplibregl.Map) {
@@ -238,19 +240,22 @@ function handleGeoJSONFileLoaded(map: maplibregl.Map, geojson: GeoJSON.Feature |
             "text-halo-color": 'white',
             "text-halo-width": 2
         }
-    })
+    });
+
+    function addPoint(feature: GeoJSON.Feature) {
+        const id = points.value.features.length + 1;
+        const color = id % 2 === 0 ? "green" : "red";
+        feature.properties = { id, color };
+        points.value.features.push(feature as any);
+
+        (map.getSource(id_pair_points_source) as maplibregl.GeoJSONSource).setData(points.value);
+        updatePairPointLine(map);
+    }
 
     map.on('click', id_choose_points_layer, (e) => {
         if (e.features!.length > 0) {
             const feature = e.features![0];
-
-            const id = points.value.features.length + 1;
-            const color = id % 2 === 0 ? "green" : "red";
-            feature.properties = { id, color };
-            points.value.features.push(feature as any);
-
-            (map.getSource(id_pair_points_source) as maplibregl.GeoJSONSource).setData(points.value);
-            updatePairPointLine(map);
+            addPoint(feature);
         }
         e.preventDefault();
     });
@@ -260,20 +265,22 @@ function handleGeoJSONFileLoaded(map: maplibregl.Map, geojson: GeoJSON.Feature |
             return;
         }
 
-        const id = points.value.features.length + 1;
-        const color = id % 2 === 0 ? "green" : "red";
-        points.value.features.push({
+        addPoint({
             type: 'Feature',
-            properties: { id, color },
+            properties: {},
             geometry: {
                 type: 'Point',
                 coordinates: [e.lngLat.lng, e.lngLat.lat]
             }
         });
-
-        (map.getSource(id_pair_points_source) as maplibregl.GeoJSONSource).setData(points.value);
-        updatePairPointLine(map);
     });
+}
+
+function cal() {
+}
+
+function apply() {
+
 }
 </script>
 
