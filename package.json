@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "vitepress dev docs",
     "build": "vitepress build docs",
-    "serve": "vitepress serve docs"
+    "serve": "vitepress serve docs",
+    "test": "vitest"
   },
   "devDependencies": {
-    "vitepress": "^1.0.0-rc.20"
+    "vitepress": "^1.0.0-rc.20",
+    "vitest": "0.33.0"
   },
   "dependencies": {
     "@turf/bbox": "^6.5.0",
