@@ -1,4 +1,5 @@
 import { UserConfig, DefaultTheme } from 'vitepress'
+import ViteMonacoPlugin  from 'vite-plugin-monaco-editor'
 
 export default {
     title: 'wang-tools',
@@ -19,11 +20,20 @@ export default {
                         items: [
                             { text: "四参数", link: "/coord-rectify-4" }
                         ]
+                    }, {
+                        text: "数据转换",
+                        collapsed: true,
+                        items: [
+                            { text: "geojson转wkt", link: "/geojson-to-wkt" }
+                        ]
                     }]
             }
         },
         nav: [{ 'text': "gis", link: '/gis/' }],
         socialLinks: [{ icon: 'github', link: "https://github.com/cocaine-coder/wang-tools" }],
         aside: false
+    },
+    vite:{
+        plugins:[ViteMonacoPlugin({})]
     }
 } as UserConfig<DefaultTheme.Config>
