@@ -50,6 +50,10 @@ function handleFileChange(e: Event) {
                     id: id_layer_point,
                     type: 'circle',
                     source: id_source,
+                    paint:{
+                        "circle-opacity": 0.8,
+                        "circle-color": "yellow",
+                    },
                     filter: ['==', '$type', "Point"]
                 });
 
@@ -57,6 +61,10 @@ function handleFileChange(e: Event) {
                     id: id_layer_line,
                     type: 'line',
                     source: id_source,
+                    paint:{
+                        "line-opacity": 0.8,
+                        "line-color": "yellow",
+                    },
                     filter: ['==', '$type', "LineString"]
                 });
 

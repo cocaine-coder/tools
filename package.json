@@ -10,15 +10,19 @@
     "test": "vitest"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@types/proj4": "^2.5.5",
     "vitepress": "^1.0.0-rc.20",
     "vitest": "0.33.0"
   },
   "dependencies": {
     "@turf/bbox": "^6.5.0",
     "@turf/meta": "^6.5.0",
+    "file-saver": "^2.0.5",
     "maplibre-gl": "^3.4.0",
     "mathjs": "11.12.0",
     "monaco-editor": "^0.48.0",
+    "proj4": "^2.11.0",
     "vite-plugin-monaco-editor": "^1.1.0",
     "wheater": "^1.0.8"
   }

@@ -1,4 +1,5 @@
 <template>
+    <div v-show="caling" class="mask"></div>
     <Maplibre>
         <template v-slot="slotProps">
             <div>
@@ -9,15 +10,21 @@
                     <Separater></Separater>
                     <AppendRasterLayer :map="slotProps.map" :before-id="id_raster_before"></AppendRasterLayer>
                     <Separater></Separater>
-
+                    <div style="display: flex;flex-direction: row-reverse;flex: 1;">
+                        <button v-show="saveRef" @click="saveRef()">下载结果</button>
+                        <Separater v-show="saveRef"></Separater>
+                        <button v-show="canCal" @click="cal(slotProps.map)">计算</button>
+                        <Separater v-show="canCal"></Separater>
+                        <button @click="clear(slotProps.map)">清空</button>
+                    </div>
                 </div>
 
                 <div id="table">
                     <div>id</div>
-                    <div>origin lat</div>
-                    <div>origin lng</div>
-                    <div>dest lat </div>
-                    <div>dest lng</div>
+                    <div>原始 经度</div>
+                    <div>原始 纬度</div>
+                    <div>实际 经度</div>
+                    <div>实际 纬度</div>
                     <div>操作</div>
                     <template v-for="pair in point_pairs">
                         <div>{{ pair[0] }}</div>
@@ -43,13 +50,19 @@ import Separater from '../common/Separater.vue';
 
 import { ref, computed } from 'vue';
 import * as turf_meta from '@turf/meta';
-import { creator } from 'wheater';
+import { creator, deep } from 'wheater';
 import { GeoJSONSource } from 'maplibre-gl';
+import { saveAs } from 'file-saver';
+import proj4 from 'proj4';
+import Matrix from '../../libs/matrix';
 
 const id_choose_points_layer = creator.uuid();
 const id_choose_points_source = creator.uuid();
 const id_pair_points_source = creator.uuid();
 const id_pair_point_line_source = creator.uuid();
+
+const id_result_source = creator.uuid();
+const id_result_layer = creator.uuid();
 
 const id_raster_before = ref<string | undefined>();
 const points = ref<GeoJSON.FeatureCollection<GeoJSON.Point, { id: number, color: string }>>({ type: 'FeatureCollection', features: [] });
@@ -70,6 +83,15 @@ const point_pairs = computed(() => {
 
     return ret;
 });
+
+const canCal = computed(() => {
+    return point_pairs.value.size > 3 && points.value.features.length % 2 === 0;
+});
+const caling = ref(false);
+
+const saveRef = ref<() => void>();
+
+let source_deata: GeoJSON.FeatureCollection;
 
 /**
  * 更新点对之间的连线
@@ -121,6 +143,7 @@ function handleRemovePointPair(map: maplibregl.Map, id: string) {
  * @param layerIds 
  */
 function handleGeoJSONFileLoaded(map: maplibregl.Map, geojson: GeoJSON.Feature | GeoJSON.FeatureCollection, sourceId: string, layerIds: string[]) {
+    source_deata = geojson.type === 'Feature' ? { type: 'FeatureCollection', features: [geojson] } : geojson;
     map.getCanvas().style.cursor = 'crosshair';
 
     // 切换raster before id
@@ -276,15 +299,129 @@ function handleGeoJSONFileLoaded(map: maplibregl.Map, geojson: GeoJSON.Feature |
     });
 }
 
-function cal() {
+function cal(map: maplibregl.Map) {
+    caling.value = true;
+
+    try {
+        const common_point_length = point_pairs.value.size;
+        const L = Matrix.zero(2 * common_point_length, 1);
+        const B = Matrix.zero(2 * common_point_length, 4);
+        const P = Matrix.identity(2 * common_point_length);
+
+        const espg_3857 = "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs +type=crs";
+        let index = 1;
+        point_pairs.value.forEach(value => {
+            const org = proj4(espg_3857, value.slice(0, 2));
+            const dest = proj4(espg_3857, value.slice(2));
+
+            L.set(index, 1, dest[0] - org[0]);
+            L.set(index + 1, 1, dest[1] - org[1]);
+
+            B.setRow(index, [1, 0, org[0], -org[1]]);
+            B.setRow(index + 1, [0, 1, org[1], org[0]]);
+
+            index++;
+        });
+
+        const X = B.transpose().mul(P).mul(B).inverse().mul(B.transpose()).mul(P).mul(L);
+        const V = B.mul(X).sub(L);
+
+        const dertX = X.get(1, 1);
+        const dertY = X.get(2, 1);
+        const a = X.get(3, 1);
+        const b = X.get(4, 1);
+
+        const data_copy = deep.clone(source_deata);
+        turf_meta.coordEach(data_copy, (currentCoord) => {
+            const xy = proj4(espg_3857, currentCoord);
+            const x = xy[0];
+            const y = xy[1];
+
+            const _xy = [
+                dertX + (1 + a) * x - b * y,
+                dertY + b * x + (1 + a) * y
+            ];
+            deep.setProps(
+                proj4(espg_3857, proj4.WGS84, _xy)
+                ,
+                currentCoord
+            );
+        });
+
+        const source = map.getSource(id_result_source) as maplibregl.GeoJSONSource;
+        if (!source) {
+            map.addSource(id_result_source, {
+                type: 'geojson',
+                data: data_copy
+            });
+
+            map.addLayer({
+                id: id_result_layer + "point",
+                type: 'circle',
+                source: id_result_source,
+                paint: {
+                    "circle-color": 'green'
+                },
+                filter: ['==', '$type', "Point"]
+            });
+
+            map.addLayer({
+                id: id_result_layer + "line",
+                type: 'line',
+                source: id_result_source,
+                paint: {
+                    "line-color": "green"
+                },
+                filter: ['==', '$type', "LineString"]
+            });
+
+            map.addLayer({
+                id: id_result_layer + "polygon",
+                type: 'fill',
+                source: id_result_source,
+                paint: {
+                    "fill-opacity": 0.4,
+                    "fill-color": "green",
+                    "fill-outline-color": "blue",
+                },
+                filter: ['==', '$type', "Polygon"]
+            });
+        } else {
+            source.setData(data_copy);
+        }
+
+        saveRef.value = () => {
+            console.log("下载文件")
+            saveAs(new Blob([JSON.stringify(data_copy)],{
+                type: 'application/json'
+            }) , "result.geojson");
+        }
+    } catch {
+
+    } finally {
+        caling.value = false;
+    }
 }
 
-function apply() {
+function clear(map: maplibregl.Map) {
+    points.value = { type: 'FeatureCollection', features: [] };
+    (map.getSource(id_pair_points_source) as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection', features: [] });
+    (map.getSource(id_pair_point_line_source) as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection', features: [] });
+    (map.getSource(id_result_source) as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection', features: [] });
 
+    saveRef.value = undefined;
 }
 </script>
 
 <style scoped>
+.mask {
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    position: absolute;
+    background-color: #00000022;
+}
+
 #controls {
     display: flex;
     align-items: center;
