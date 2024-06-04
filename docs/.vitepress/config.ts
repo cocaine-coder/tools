@@ -30,7 +30,7 @@ export default {
             }
         },
         nav: [{ 'text': "gis", link: '/gis/' }],
-        socialLinks: [{ icon: 'github', link: "https://github.com/cocaine-coder/wang-tools" }],
+        socialLinks: [{ icon: 'github', link: "https://github.com/cocaine-coder/tools" }],
         aside: false
     },
     vite:{

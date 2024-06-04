@@ -10,7 +10,7 @@
 ## 调试本项目
 
 ``` bash
-git clone https://github.com/cocaine-coder/wang-tools.git
+git clone https://github.com/cocaine-coder/tools.git
 
 npm install     # yarn 
 npm run dev     # yarn dev
@@ -32,5 +32,3 @@ npm run build   # yarn build
   - [ ] wkt 与 geojson 互转
   - [ ] 地理测量
   - [ ] geojson绘制
-
-
